@@ -1,0 +1,2 @@
+aiogram
+todoist-api-python
