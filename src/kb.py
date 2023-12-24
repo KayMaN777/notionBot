@@ -1,5 +1,7 @@
 from typing import List, Tuple, Optional
 
+import datetime
+
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 
 import api
@@ -30,8 +32,18 @@ def set_info(keyboard: List[List[InlineKeyboardButton]]) -> List[List[InlineKeyb
     return keyboard
 
 
-def get_today_tasks(projects: List[Tuple[str, Optional[str]]]) -> InlineKeyboardMarkup:
-    return get_all_tasks(projects)
+def get_today_tasks(projects: List[Tuple[str, Optional[datetime.datetime]]]) -> InlineKeyboardMarkup:
+    keyboard = []
+    now = datetime.datetime.now()
+    for project in projects:
+        if project[1] is not None and project[1].date() == now.date():
+            text = f"\"{project[0]}\" до {project[1].time()}    "
+            if project[1] < now:
+                text += "❌"
+            else:
+                text += "✅"
+            keyboard.append([InlineKeyboardButton(text=text)])
+    return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
 
 
 def get_all_projects(projects: List[Tuple[str, int]]) -> InlineKeyboardMarkup:
@@ -41,11 +53,17 @@ def get_all_projects(projects: List[Tuple[str, int]]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
 
 
-def get_all_tasks(projects: List[Tuple[str, Optional[str]]]) -> InlineKeyboardMarkup:
+def get_all_tasks(projects: List[Tuple[str, Optional[datetime.datetime]]]) -> InlineKeyboardMarkup:
     keyboard = []
+    now = datetime.datetime.now()
     for project in projects:
         if project[1] is not None:
-            keyboard.append([InlineKeyboardButton(text=f"\"{project[0]}\" до {project[1]}")])
+            text = f"\"{project[0]}\" до {project[1]}   "
+            if project[1] < now:
+                text += "❌"
+            else:
+                text += "✅"
+            keyboard.append([InlineKeyboardButton(text=text)])
         else:
             keyboard.append([InlineKeyboardButton(text=f"\"{project[0]}\"")])
     return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))

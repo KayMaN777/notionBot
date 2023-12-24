@@ -289,11 +289,12 @@ async def set_arg(value: str, msg: Message, state: FSMContext):
 @router.message(F.text == "Список задач на сегодня", states.Menu.choose_query)
 async def get_today_tasks(msg: Message, state: FSMContext):
     data = await state.get_data()
-    tasks = await api.get_today_tasks(data["token"])
-    if len(tasks) == 0:
+    tasks = await api.get_all_tasks(data["token"])
+    reply_markup = kb.get_today_tasks(tasks)
+    if len(reply_markup.inline_keyboard) == 0:
         await msg.answer("Нет задач на сегодня")
     else:
-        await msg.answer("Список задач на сегодня:", reply_markup=kb.get_today_tasks(tasks))
+        await msg.answer("Список задач на сегодня:", reply_markup=reply_markup)
 
 
 @router.message(F.text == "Список всех проектов", states.Menu.choose_query)
@@ -307,10 +308,24 @@ async def get_all_projects(msg: Message, state: FSMContext):
 async def get_all_tasks(msg: Message, state: FSMContext):
     data = await state.get_data()
     tasks = await api.get_all_tasks(data["token"])
-    if len(tasks) == 0:
+    reply_markup = kb.get_all_tasks(tasks)
+    if len(reply_markup.inline_keyboard) == 0:
         await msg.answer("Нет задач")
     else:
-        await msg.answer("Список всех задач:", reply_markup=kb.get_all_tasks(tasks))
+        await msg.answer("Список всех задач:", reply_markup=reply_markup)
+
+
+@router.message(F.text == "Удалить пропущенные задачи", states.Menu.choose_query)
+async def delete_missed_tasks(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    flag, count = await api.delete_missed_tasks(data["token"])
+    if flag:
+        if count > 0:
+            await msg.answer(f"Пропущенные задачи успешно удалены ({count})")
+        else:
+            await msg.answer("Пропущенных задач не было")
+    else:
+        await msg.answer("Ошибка")
 
 
 @router.message(states.Menu.choose_query)
@@ -391,5 +406,5 @@ mapper = {
 }
 funcs = [
     add_project, delete_project, rename_project, create_task, delete_task, update_task,
-    get_today_tasks, get_all_projects, get_all_tasks
+    get_today_tasks, get_all_projects, get_all_tasks, delete_missed_tasks
 ]

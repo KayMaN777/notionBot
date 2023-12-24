@@ -3,7 +3,7 @@ from typing import Optional, List, Tuple
 import datetime
 
 from todoist_api_python.api_async import TodoistAPIAsync
-from todoist_api_python.models import Project, Task
+from todoist_api_python.models import Project, Task, Due
 
 
 async def check_token(token: str) -> bool:
@@ -167,6 +167,14 @@ async def update_task(
         return False
 
 
+def get_datetime(due: Optional[Due]) -> Optional[datetime.datetime]:
+    if due is None:
+        return None
+    if due.datetime is None:
+        return datetime.datetime.strptime(due.date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+    return datetime.datetime.strptime(due.datetime, '%Y-%m-%dT%H:%M:%S')
+
+
 async def get_all(token: str) -> List[Tuple[Project, List[Task]]]:
     api = TodoistAPIAsync(token)
     res = []
@@ -181,20 +189,6 @@ async def get_all(token: str) -> List[Tuple[Project, List[Task]]]:
         return []
 
 
-async def get_today_tasks(token: str) -> List[Tuple[str, str]]:
-    res_all = await get_all(token)
-    res = []
-    today = str(datetime.date.today())
-    for _, tasks in res_all:
-        for task in tasks:
-            if task.due is not None and task.due.date == today:
-                if task.due.datetime is not None:
-                    res.append((task.content, task.due.datetime.split('T')[1]))
-                else:
-                    res.append((task.content, None))
-    return res
-
-
 async def get_all_projects(token: str) -> List[Tuple[str, int]]:
     res_all = await get_all(token)
     res = []
@@ -203,19 +197,27 @@ async def get_all_projects(token: str) -> List[Tuple[str, int]]:
     return res
 
 
-async def get_all_tasks(token: str) -> List[Tuple[str, Optional[str]]]:
+async def get_all_tasks(token: str) -> List[Tuple[str, Optional[datetime.datetime]]]:
     res_all = await get_all(token)
     res = []
-    for project, tasks in res_all:
+    for _, tasks in res_all:
         for task in tasks:
-            if task.due is not None:
-                if task.due.datetime is not None:
-                    res.append((task.content, task.due.datetime.replace('T', ' ')))
-                else:
-                    res.append((task.content, task.due.date))
-            else:
-                res.append((task.content, None))
+            res.append((task.content, get_datetime(task.due)))
     return res
+
+
+async def delete_missed_tasks(token: str) -> Tuple[bool, int]:
+    api = TodoistAPIAsync(token)
+    res_all = await get_all(token)
+    now = datetime.datetime.now()
+    is_success = True
+    count = 0
+    for _, tasks in res_all:
+        for task in tasks:
+            if task.due is not None and get_datetime(task.due) < now:
+                is_success &= await api.delete_task(task_id=task.id)
+                count += 1
+    return is_success, count
 
 
 types = [
@@ -228,4 +230,5 @@ types = [
     "Список задач на сегодня",
     "Список всех проектов",
     "Список всех задач",
+    "Удалить пропущенные задачи"
 ]
