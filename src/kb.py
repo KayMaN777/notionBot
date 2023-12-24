@@ -75,6 +75,8 @@ def choose_attrs(data: dict) -> ReplyKeyboardMarkup:
         keyboard.append([KeyboardButton(text=f"Тип запроса: {api.types[data['type_idx']]}")])
     if "name" in data:
         keyboard.append([KeyboardButton(text=f"Имя проекта: {data['name']}")])
+    if "content" in data:
+        keyboard.append([KeyboardButton(text=f"Имя задачи: {data['content']}")])
     if "due_string" in data:
         keyboard.append([KeyboardButton(text=f"Дедлайн: {data['due_string']}")])
     keyboard.append([KeyboardButton(text="Сохранить")])

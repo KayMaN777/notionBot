@@ -1,6 +1,7 @@
 import asyncio
 
 from aiogram import Router, F
+from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 from aiogram.filters import Command
@@ -9,6 +10,7 @@ import api
 from finder import Attrs, Finder
 import kb
 import states
+import texts
 
 router = Router()
 
@@ -17,7 +19,7 @@ finder = Finder(api.types)
 
 @router.message(Command("info"))
 async def logout(msg: Message):
-    await msg.answer("Информация")  # TODO
+    await msg.answer(texts.info)
 
 
 @router.message(Command("start"))
@@ -40,7 +42,7 @@ async def logout(msg: Message, state: FSMContext):
 
 async def login(msg: Message, state: FSMContext):
     await state.set_state(states.Menu.get_token)
-    await msg.answer("Введите Ваш API-токен от Todoist")
+    await msg.answer(texts.api_request, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
 @router.message(states.Menu.get_token)
