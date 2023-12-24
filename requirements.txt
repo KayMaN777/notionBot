@@ -1,2 +1,6 @@
 aiogram
 todoist-api-python
+nltk
+numpy
+torch
+transformers

@@ -1,13 +1,18 @@
+import asyncio
+
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 from aiogram.filters import Command
 
 import api
+from finder import Attrs, Finder
 import kb
 import states
 
 router = Router()
+
+finder = Finder(api.types)
 
 
 @router.message(Command("start"))
@@ -38,9 +43,10 @@ async def get_token(msg: Message, state: FSMContext):
 
 
 @router.message(F.text == "Отмена")
-async def choose_query(msg: Message, state: FSMContext):
+async def choose_query(msg: Message, state: FSMContext, *, reset: bool = True):
     data = await state.get_data()
-    await state.set_data({"token": data["token"]})
+    if reset:
+        await state.set_data({"token": data["token"]})
     await state.set_state(states.Menu.choose_query)
     await msg.answer("Введите запрос", reply_markup=kb.queries)
 
@@ -295,6 +301,53 @@ async def get_all_tasks(msg: Message, state: FSMContext):
         await msg.answer("Список всех задач:", reply_markup=kb.get_all_tasks(tasks))
 
 
+@router.message(states.Menu.choose_query)
+async def get_custom_query(msg: Message, state: FSMContext):
+    query = msg.text.strip()
+    res = await asyncio.gather(asyncio.to_thread(finder.get_attrs, query))
+    attrs: Attrs = res[0]
+    print(api.types[attrs.type_idx])
+    print(attrs)
+
+    data = await state.get_data()
+    for key, value in attrs.__dict__.items():
+        if value is not None:
+            data[key] = value
+    await state.set_data(data)
+    await state.set_state(states.CustomQuery.state)
+    await msg.answer(
+        "Запрос обработан. Выберите что *неверно*", parse_mode='Markdown', reply_markup=kb.choose_attrs(data)
+    )
+
+
+@router.message(F.text == "Сохранить", states.CustomQuery.state)
+async def save_attrs(msg: Message, state: FSMContext):
+    data = await state.get_data()
+
+    if "type_idx" in data:
+        await funcs[data["type_idx"]](msg, state)
+    else:
+        await choose_query(msg, state, reset=False)
+
+
+@router.message(states.CustomQuery.state)
+async def drop_attrs(msg: Message, state: FSMContext):
+    data = await state.get_data()
+
+    choice = msg.text.strip()
+    choice = choice.split(':')[0].strip().lower()
+
+    match choice:
+        case "тип запроса":
+            data.pop("type_idx")
+        case "имя проекта":
+            data.pop("name")
+
+    await state.set_data(data)
+    await state.set_state(states.CustomQuery.state)
+    await msg.answer("Выберите что *неверно*", parse_mode='Markdown', reply_markup=kb.choose_attrs(data))
+
+
 @router.callback_query(F.data == "info")
 async def info_handler(query: CallbackQuery):
     await query.answer("Информация")
@@ -313,3 +366,7 @@ mapper = {
     "DeleteTask": delete_task,
     "UpdateTask": update_task,
 }
+funcs = [
+    add_project, delete_project, rename_project, create_task, delete_task, update_task,
+    get_today_tasks, get_all_projects, get_all_tasks
+]

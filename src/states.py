@@ -37,3 +37,7 @@ class UpdateTask(StatesGroup):
     new_content = State()
     new_description = State()
     new_due_string = State()
+
+
+class CustomQuery(StatesGroup):
+    state = State()

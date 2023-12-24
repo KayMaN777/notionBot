@@ -49,3 +49,14 @@ def get_all_tasks(projects: List[Tuple[str, Optional[str]]]) -> InlineKeyboardMa
         else:
             keyboard.append([InlineKeyboardButton(text=f"{project[0]}")])
     return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
+
+
+def choose_attrs(data: dict) -> ReplyKeyboardMarkup:
+    keyboard = []
+    if "type_idx" in data:
+        keyboard.append([KeyboardButton(text=f"Тип запроса: {api.types[data['type_idx']]}")])
+    if "name" in data:
+        keyboard.append([KeyboardButton(text=f"Имя проекта: {data['name']}")])
+    keyboard.append([KeyboardButton(text="Сохранить")])
+    keyboard.append([KeyboardButton(text="Отмена")])
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
