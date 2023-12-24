@@ -90,16 +90,11 @@ class Finder:
         name = name[0][1: -1].strip() if len(name) == 1 else None
 
         date = date_tokenizer.tokenize(query)
-        date = date[0] if len(date) == 1 else None
+        date = date[0] if len(date) == 1 else ""
         time = time_tokenizer.tokenize(query)
-        time = time[0] if len(time) == 1 else None
-        if date is not None and time is not None:
-            due_string = date + ' ' + time
-        elif date is None:
-            due_string = date
-        elif time is not None:
-            due_string = time
-        else:
+        time = time[0] if len(time) == 1 else ""
+        due_string = date + ' ' + time
+        if due_string == ' ':
             due_string = None
 
         return Attrs(type_idx, name, due_string)
