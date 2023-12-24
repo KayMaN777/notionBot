@@ -14,7 +14,12 @@ model_name = "cointegrated/LaBSE-en-ru"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name).to(device)
 
-name_tokenizer = RegexpTokenizer(r"\"[^\"]+\"")
+name_pattern = r"\"[^\"]+\""
+name_tokenizer = RegexpTokenizer(name_pattern)
+date_pattern = r"\d{2}\.\d{2}\.\d{4}|\d{2}\.\d{2}\.\d{2}|сегодня|завтра"
+date_tokenizer = RegexpTokenizer(date_pattern)
+time_pattern = r"\d{1,2}:\d{2}"
+time_tokenizer = RegexpTokenizer(time_pattern)
 
 
 def clear_text(text: str) -> str:
@@ -52,8 +57,9 @@ class Attrs:
     Метаданные, включая тип запроса
     """
 
-    type_idx: Optional[int]
+    type_idx: int
     name: Optional[str]
+    due_string: Optional[str]
 
 
 class Finder:
@@ -76,10 +82,24 @@ class Finder:
 
         query = clear_text(query)
 
-        query_embed = get_embeds([re.sub(r"\"[^\"]+\"", " ", query)])
+        text = re.sub(date_pattern, ' ', query)
+        query_embed = get_embeds([text])
         type_idx = np.argmax(query_embed @ self._type_embeds.T, axis=1)[0]
 
         name = name_tokenizer.tokenize(query)
         name = name[0][1: -1].strip() if len(name) == 1 else None
 
-        return Attrs(type_idx, name)
+        date = date_tokenizer.tokenize(query)
+        date = date[0] if len(date) == 1 else None
+        time = time_tokenizer.tokenize(query)
+        time = time[0] if len(time) == 1 else None
+        if date is not None and time is not None:
+            due_string = date + ' ' + time
+        elif date is None:
+            due_string = date
+        elif time is not None:
+            due_string = time
+        else:
+            due_string = None
+
+        return Attrs(type_idx, name, due_string)

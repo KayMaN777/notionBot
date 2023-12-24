@@ -306,13 +306,20 @@ async def get_custom_query(msg: Message, state: FSMContext):
     query = msg.text.strip()
     res = await asyncio.gather(asyncio.to_thread(finder.get_attrs, query))
     attrs: Attrs = res[0]
-    print(api.types[attrs.type_idx])
-    print(attrs)
+    print(query, api.types[attrs.type_idx], attrs)  # TODO
 
     data = await state.get_data()
-    for key, value in attrs.__dict__.items():
-        if value is not None:
-            data[key] = value
+
+    data["type_idx"] = attrs.type_idx
+    if attrs.name is not None:
+        if "задач" in api.types[attrs.type_idx].lower():
+            data["name"] = "Inbox"
+            data["content"] = attrs.name
+        else:
+            data["name"] = attrs.name
+    if attrs.due_string is not None:
+        data["due_string"] = attrs.due_string
+
     await state.set_data(data)
     await state.set_state(states.CustomQuery.state)
     await msg.answer(
@@ -323,7 +330,6 @@ async def get_custom_query(msg: Message, state: FSMContext):
 @router.message(F.text == "Сохранить", states.CustomQuery.state)
 async def save_attrs(msg: Message, state: FSMContext):
     data = await state.get_data()
-
     if "type_idx" in data:
         await funcs[data["type_idx"]](msg, state)
     else:
@@ -342,6 +348,11 @@ async def drop_attrs(msg: Message, state: FSMContext):
             data.pop("type_idx")
         case "имя проекта":
             data.pop("name")
+        case "дедлайн":
+            data.pop("due_string")
+        case _:
+            await incorrect(msg, state)
+            return
 
     await state.set_data(data)
     await state.set_state(states.CustomQuery.state)

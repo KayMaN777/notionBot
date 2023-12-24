@@ -37,7 +37,7 @@ def get_today_tasks(projects: List[Tuple[str, Optional[str]]]) -> InlineKeyboard
 def get_all_projects(projects: List[Tuple[str, int]]) -> InlineKeyboardMarkup:
     keyboard = []
     for project in projects:
-        keyboard.append([InlineKeyboardButton(text=f"{project[0]} ({project[1]})")])
+        keyboard.append([InlineKeyboardButton(text=f"\"{project[0]}\" ({project[1]})")])
     return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
 
 
@@ -45,9 +45,9 @@ def get_all_tasks(projects: List[Tuple[str, Optional[str]]]) -> InlineKeyboardMa
     keyboard = []
     for project in projects:
         if project[1] is not None:
-            keyboard.append([InlineKeyboardButton(text=f"{project[0]} до {project[1]}")])
+            keyboard.append([InlineKeyboardButton(text=f"\"{project[0]}\" до {project[1]}")])
         else:
-            keyboard.append([InlineKeyboardButton(text=f"{project[0]}")])
+            keyboard.append([InlineKeyboardButton(text=f"\"{project[0]}\"")])
     return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
 
 
@@ -57,6 +57,8 @@ def choose_attrs(data: dict) -> ReplyKeyboardMarkup:
         keyboard.append([KeyboardButton(text=f"Тип запроса: {api.types[data['type_idx']]}")])
     if "name" in data:
         keyboard.append([KeyboardButton(text=f"Имя проекта: {data['name']}")])
+    if "due_string" in data:
+        keyboard.append([KeyboardButton(text=f"Дедлайн: {data['due_string']}")])
     keyboard.append([KeyboardButton(text="Сохранить")])
     keyboard.append([KeyboardButton(text="Отмена")])
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)

@@ -210,7 +210,7 @@ async def get_all_tasks(token: str) -> List[Tuple[str, Optional[str]]]:
         for task in tasks:
             if task.due is not None:
                 if task.due.datetime is not None:
-                    res.append((task.content, task.due.datetime.replace('T', '')))
+                    res.append((task.content, task.due.datetime.replace('T', ' ')))
                 else:
                     res.append((task.content, task.due.date))
             else:
