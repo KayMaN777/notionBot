@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 from aiogram.filters import Command
 
 import api
@@ -64,8 +64,9 @@ async def add_project(msg: Message, state: FSMContext):
 async def delete_project(msg: Message, state: FSMContext):
     data = await state.get_data()
     if "name" not in data:
+        names = await api.get_names(data["token"])
         await state.set_state(states.DeleteProject.name)
-        await msg.answer("Введите имя проекта", reply_markup=kb.cancel)
+        await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     else:
         flag = await api.delete_project(data["token"], data["name"])
         if flag:
@@ -79,8 +80,9 @@ async def delete_project(msg: Message, state: FSMContext):
 async def rename_project(msg: Message, state: FSMContext):
     data = await state.get_data()
     if "name" not in data:
+        names = await api.get_names(data["token"])
         await state.set_state(states.RenameProject.name)
-        await msg.answer("Введите имя проекта", reply_markup=kb.cancel)
+        await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     elif "new_name" not in data:
         await state.set_state(states.RenameProject.new_name)
         await msg.answer("Введите новое имя проекта", reply_markup=kb.cancel)
@@ -97,8 +99,9 @@ async def rename_project(msg: Message, state: FSMContext):
 async def create_task(msg: Message, state: FSMContext):
     data = await state.get_data()
     if "name" not in data:
+        names = await api.get_names(data["token"])
         await state.set_state(states.CreateTask.name)
-        await msg.answer("Введите имя проекта", reply_markup=kb.cancel)
+        await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     elif "content" not in data:
         await state.set_state(states.CreateTask.content)
         await msg.answer("Введите имя задачи", reply_markup=kb.cancel)
@@ -123,11 +126,13 @@ async def create_task(msg: Message, state: FSMContext):
 async def delete_task(msg: Message, state: FSMContext):
     data = await state.get_data()
     if "name" not in data:
+        names = await api.get_names(data["token"])
         await state.set_state(states.DeleteTask.name)
-        await msg.answer("Введите имя проекта", reply_markup=kb.cancel)
+        await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     elif "content" not in data:
+        contents = await api.get_contents(data["token"], data["name"])
         await state.set_state(states.DeleteTask.content)
-        await msg.answer("Введите имя задачи", reply_markup=kb.cancel)
+        await msg.answer("Введите имя задачи", reply_markup=kb.get_list(contents))
     else:
         flag = await api.delete_task(data["token"], data["name"], data["content"])
         if flag:
@@ -141,11 +146,13 @@ async def delete_task(msg: Message, state: FSMContext):
 async def update_task(msg: Message, state: FSMContext):
     data = await state.get_data()
     if "name" not in data:
+        names = await api.get_names(data["token"])
         await state.set_state(states.UpdateTask.name)
-        await msg.answer("Введите имя проекта", reply_markup=kb.cancel)
+        await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     elif "content" not in data:
+        contents = await api.get_contents(data["token"], data["name"])
         await state.set_state(states.UpdateTask.content)
-        await msg.answer("Введите имя задачи", reply_markup=kb.cancel)
+        await msg.answer("Введите имя задачи", reply_markup=kb.get_list(contents))
     elif "new_content" not in data:
         await state.set_state(states.UpdateTask.new_content)
         await msg.answer("Введите новое имя задачи", reply_markup=kb.skip)
@@ -272,6 +279,11 @@ async def get_all_tasks(msg: Message, state: FSMContext):
     data = await state.get_data()
     tasks = await api.get_all_tasks(data["token"])
     await msg.answer("Список всех задач:", reply_markup=kb.get_all_tasks(tasks))
+
+
+@router.callback_query(F.data == "info")
+async def incorrect(query: CallbackQuery):
+    await query.answer("Информация")
 
 
 @router.message()

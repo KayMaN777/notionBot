@@ -4,18 +4,10 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardBut
 
 import api
 
-
-def set_info(keyboard: List[List[InlineKeyboardButton]]) -> List[List[InlineKeyboardButton]]:
-    for i in range(len(keyboard)):
-        for j in range(len(keyboard[i])):
-            keyboard[i][j].callback_data = "info"
-    return keyboard
-
-
 queries = []
 for query in api.types:
     queries.append([KeyboardButton(text=query)])
-queries = ReplyKeyboardMarkup(keyboard=queries, resize_keyboard=True)
+queries = ReplyKeyboardMarkup(keyboard=queries, resize_keyboard=True, one_time_keyboard=True)
 
 cancel = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
 
@@ -23,6 +15,19 @@ skip = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="Пропустить"), KeyboardButton(text="Отмена")]],
     resize_keyboard=True
 )
+
+
+def get_list(texts: List[str]) -> ReplyKeyboardMarkup:
+    keyboard = [[KeyboardButton(text=text)] for text in texts]
+    keyboard.append([KeyboardButton(text="Отмена")])
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+
+
+def set_info(keyboard: List[List[InlineKeyboardButton]]) -> List[List[InlineKeyboardButton]]:
+    for i in range(len(keyboard)):
+        for j in range(len(keyboard[i])):
+            keyboard[i][j].callback_data = "info"
+    return keyboard
 
 
 def get_today_tasks(projects: List[Tuple[str, Optional[str]]]) -> InlineKeyboardMarkup:
