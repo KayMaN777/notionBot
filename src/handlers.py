@@ -65,8 +65,12 @@ async def delete_project(msg: Message, state: FSMContext):
     data = await state.get_data()
     if "name" not in data:
         names = await api.get_names(data["token"])
-        await state.set_state(states.DeleteProject.name)
-        await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
+        if names == ["Inbox"]:
+            await msg.answer("Нет проектов для удаления")
+            await choose_query(msg, state)
+        else:
+            await state.set_state(states.DeleteProject.name)
+            await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     else:
         flag = await api.delete_project(data["token"], data["name"])
         if flag:
@@ -81,8 +85,12 @@ async def rename_project(msg: Message, state: FSMContext):
     data = await state.get_data()
     if "name" not in data:
         names = await api.get_names(data["token"])
-        await state.set_state(states.RenameProject.name)
-        await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
+        if names == ["Inbox"]:
+            await msg.answer("Нет проектов для переименования")
+            await choose_query(msg, state)
+        else:
+            await state.set_state(states.RenameProject.name)
+            await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     elif "new_name" not in data:
         await state.set_state(states.RenameProject.new_name)
         await msg.answer("Введите новое имя проекта", reply_markup=kb.cancel)
@@ -131,8 +139,12 @@ async def delete_task(msg: Message, state: FSMContext):
         await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     elif "content" not in data:
         contents = await api.get_contents(data["token"], data["name"])
-        await state.set_state(states.DeleteTask.content)
-        await msg.answer("Введите имя задачи", reply_markup=kb.get_list(contents))
+        if len(contents) == 0:
+            await msg.answer("Нет задач в этом проекте")
+            await choose_query(msg, state)
+        else:
+            await state.set_state(states.DeleteTask.content)
+            await msg.answer("Введите имя задачи", reply_markup=kb.get_list(contents))
     else:
         flag = await api.delete_task(data["token"], data["name"], data["content"])
         if flag:
@@ -151,8 +163,12 @@ async def update_task(msg: Message, state: FSMContext):
         await msg.answer("Введите имя проекта", reply_markup=kb.get_list(names))
     elif "content" not in data:
         contents = await api.get_contents(data["token"], data["name"])
-        await state.set_state(states.UpdateTask.content)
-        await msg.answer("Введите имя задачи", reply_markup=kb.get_list(contents))
+        if len(contents) == 0:
+            await msg.answer("В этом проекте нет задач")
+            await choose_query(msg, state)
+        else:
+            await state.set_state(states.UpdateTask.content)
+            await msg.answer("Введите имя задачи", reply_markup=kb.get_list(contents))
     elif "new_content" not in data:
         await state.set_state(states.UpdateTask.new_content)
         await msg.answer("Введите новое имя задачи", reply_markup=kb.skip)
@@ -181,10 +197,7 @@ async def get_new_name(msg: Message, state: FSMContext):
     name = msg.text.strip()
     flag = await api.find_project_name(data["token"], name)
     if flag == 0:
-        state_name = await state.get_state()
-        state_name = state_name.split(":")
-        await state.update_data({state_name[1]: name})
-        await mapper[state_name[0]](msg, state)
+        await set_arg(name, msg, state)
     elif flag == 1:
         await msg.answer("Имя проекта уже занято")
     else:
@@ -201,10 +214,7 @@ async def get_exist_name(msg: Message, state: FSMContext):
     name = msg.text.strip()
     flag = await api.find_project_name(data["token"], name)
     if flag == 1:
-        state_name = await state.get_state()
-        state_name = state_name.split(":")
-        await state.update_data({state_name[1]: name})
-        await mapper[state_name[0]](msg, state)
+        await set_arg(name, msg, state)
     elif flag == 0:
         await msg.answer("Нет проекта с таким именем")
     else:
@@ -218,10 +228,7 @@ async def get_new_content(msg: Message, state: FSMContext):
     content = msg.text.strip()
     flag = await api.find_task_content(data["token"], data["name"], content)
     if flag == 0:
-        state_name = await state.get_state()
-        state_name = state_name.split(":")
-        await state.update_data({state_name[1]: content})
-        await mapper[state_name[0]](msg, state)
+        await set_arg(content, msg, state)
     elif flag == 1:
         await msg.answer("Имя задачи уже занято")
     else:
@@ -235,10 +242,7 @@ async def get_exists_content(msg: Message, state: FSMContext):
     content = msg.text.strip()
     flag = await api.find_task_content(data["token"], data["name"], content)
     if flag == 1:
-        state_name = await state.get_state()
-        state_name = state_name.split(":")
-        await state.update_data({state_name[1]: content})
-        await mapper[state_name[0]](msg, state)
+        await set_arg(content, msg, state)
     elif flag == 0:
         await msg.answer("Нет задачи с таким именем")
     else:
@@ -254,9 +258,13 @@ async def get_add_args(msg: Message, state: FSMContext):
     text = msg.text.strip()
     if text == "Пропустить":
         text = None
+    await set_arg(text, msg, state)
+
+
+async def set_arg(value: str, msg: Message, state: FSMContext):
     state_name = await state.get_state()
     state_name = state_name.split(":")
-    await state.update_data({state_name[1]: text})
+    await state.update_data({state_name[1]: value})
     await mapper[state_name[0]](msg, state)
 
 
@@ -264,7 +272,10 @@ async def get_add_args(msg: Message, state: FSMContext):
 async def get_today_tasks(msg: Message, state: FSMContext):
     data = await state.get_data()
     tasks = await api.get_today_tasks(data["token"])
-    await msg.answer("Список задач на сегодня:", reply_markup=kb.get_today_tasks(tasks))
+    if len(tasks) == 0:
+        await msg.answer("Нет задач на сегодня")
+    else:
+        await msg.answer("Список задач на сегодня:", reply_markup=kb.get_today_tasks(tasks))
 
 
 @router.message(F.text == "Список всех проектов", states.Menu.choose_query)
@@ -278,11 +289,14 @@ async def get_all_projects(msg: Message, state: FSMContext):
 async def get_all_tasks(msg: Message, state: FSMContext):
     data = await state.get_data()
     tasks = await api.get_all_tasks(data["token"])
-    await msg.answer("Список всех задач:", reply_markup=kb.get_all_tasks(tasks))
+    if len(tasks) == 0:
+        await msg.answer("Нет задач")
+    else:
+        await msg.answer("Список всех задач:", reply_markup=kb.get_all_tasks(tasks))
 
 
 @router.callback_query(F.data == "info")
-async def incorrect(query: CallbackQuery):
+async def info_handler(query: CallbackQuery):
     await query.answer("Информация")
 
 
