@@ -15,6 +15,11 @@ router = Router()
 finder = Finder(api.types)
 
 
+@router.message(Command("info"))
+async def logout(msg: Message):
+    await msg.answer("Информация")  # TODO
+
+
 @router.message(Command("start"))
 async def start_handler(msg: Message, state: FSMContext):
     data = await state.get_data()
@@ -24,6 +29,13 @@ async def start_handler(msg: Message, state: FSMContext):
     else:
         await msg.answer(f"Добро пожаловать, {msg.from_user.full_name}!", reply_markup=ReplyKeyboardRemove())
         await login(msg, state)
+
+
+@router.message(Command("logout"))
+async def logout(msg: Message, state: FSMContext):
+    await state.clear()
+    await msg.answer("Вы вышли")
+    await start_handler(msg, state)
 
 
 async def login(msg: Message, state: FSMContext):

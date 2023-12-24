@@ -82,8 +82,7 @@ class Finder:
 
         query = clear_text(query)
 
-        text = re.sub(date_pattern, ' ', query)
-        query_embed = get_embeds([text])
+        query_embed = get_embeds([query])
         type_idx = np.argmax(query_embed @ self._type_embeds.T, axis=1)[0]
 
         name = name_tokenizer.tokenize(query)
