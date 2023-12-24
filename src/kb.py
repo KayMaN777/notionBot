@@ -7,7 +7,7 @@ import api
 queries = []
 for query in api.types:
     queries.append([KeyboardButton(text=query)])
-queries = ReplyKeyboardMarkup(keyboard=queries, resize_keyboard=True, one_time_keyboard=True)
+queries = ReplyKeyboardMarkup(keyboard=queries, resize_keyboard=True)
 
 cancel = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
 

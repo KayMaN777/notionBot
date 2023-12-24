@@ -16,19 +16,6 @@ async def check_token(token: str) -> bool:
         return False
 
 
-async def get_project_id(token: str, name: str) -> Optional[str]:
-    api = TodoistAPIAsync(token)
-    try:
-        projects = await api.get_projects()
-        for project in projects:
-            if project.name == name:
-                return project.id
-        return None
-    except Exception as error:
-        print(error)
-        return None
-
-
 async def find_project_name(token: str, name: str) -> Optional[bool]:
     api = TodoistAPIAsync(token)
     try:
@@ -37,6 +24,19 @@ async def find_project_name(token: str, name: str) -> Optional[bool]:
             if project.name == name:
                 return True
         return False
+    except Exception as error:
+        print(error)
+        return None
+
+
+async def get_project_id(token: str, name: str) -> Optional[str]:
+    api = TodoistAPIAsync(token)
+    try:
+        projects = await api.get_projects()
+        for project in projects:
+            if project.name == name:
+                return project.id
+        return None
     except Exception as error:
         print(error)
         return None
@@ -84,20 +84,6 @@ async def rename_project(token: str, name: str, new_name: str) -> bool:
         return False
 
 
-async def get_task_id(token: str, name: str, content: str) -> Optional[str]:
-    api = TodoistAPIAsync(token)
-    project_id = await get_project_id(token, name)
-    try:
-        tasks = await api.get_tasks(project_id=project_id)
-        for task in tasks:
-            if task.content == content:
-                return task.id
-        return None
-    except Exception as error:
-        print(error)
-        return None
-
-
 async def find_task_content(token: str, name: str, content: str) -> Optional[bool]:
     api = TodoistAPIAsync(token)
     project_id = await get_project_id(token, name)
@@ -107,6 +93,20 @@ async def find_task_content(token: str, name: str, content: str) -> Optional[boo
             if task.content == content:
                 return True
         return False
+    except Exception as error:
+        print(error)
+        return None
+
+
+async def get_task_id(token: str, name: str, content: str) -> Optional[str]:
+    api = TodoistAPIAsync(token)
+    project_id = await get_project_id(token, name)
+    try:
+        tasks = await api.get_tasks(project_id=project_id)
+        for task in tasks:
+            if task.content == content:
+                return task.id
+        return None
     except Exception as error:
         print(error)
         return None
