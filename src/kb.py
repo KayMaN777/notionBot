@@ -2,7 +2,10 @@ from typing import List, Tuple, Optional
 
 import datetime
 
+from aiogram.filters.callback_data import CallbackData
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+
+from todoist_api_python.models import Task
 
 import api
 
@@ -19,6 +22,11 @@ skip = ReplyKeyboardMarkup(
 )
 
 
+class TaskInfo(CallbackData, prefix="task_info"):
+    content: str
+    description: str
+
+
 def get_list(texts: List[str]) -> ReplyKeyboardMarkup:
     keyboard = [[KeyboardButton(text=text)] for text in texts]
     keyboard.append([KeyboardButton(text="Отмена")])
@@ -32,18 +40,22 @@ def set_info(keyboard: List[List[InlineKeyboardButton]]) -> List[List[InlineKeyb
     return keyboard
 
 
-def get_today_tasks(projects: List[Tuple[str, Optional[datetime.datetime]]]) -> InlineKeyboardMarkup:
+def get_today_tasks(tasks: List[Tuple[str, Optional[datetime.datetime], Task]]) -> InlineKeyboardMarkup:
     keyboard = []
     now = datetime.datetime.now()
-    for project in projects:
-        if project[1] is not None and project[1].date() == now.date():
-            text = f"\"{project[0]}\" до {project[1].time()}    "
-            if project[1] < now:
+    for task in tasks:
+        if task[1] is not None and task[1].date() == now.date():
+            text = f"\"{task[0]}\" до {task[1].time()}    "
+            if task[1] < now:
                 text += "❌"
             else:
                 text += "✅"
-            keyboard.append([InlineKeyboardButton(text=text)])
-    return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
+            keyboard.append([
+                InlineKeyboardButton(
+                    text=text, callback_data=TaskInfo(content=task[0], description=task[2].description).pack()
+                )
+            ])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def get_all_projects(projects: List[Tuple[str, int]]) -> InlineKeyboardMarkup:
@@ -53,20 +65,23 @@ def get_all_projects(projects: List[Tuple[str, int]]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
 
 
-def get_all_tasks(projects: List[Tuple[str, Optional[datetime.datetime]]]) -> InlineKeyboardMarkup:
+def get_all_tasks(tasks: List[Tuple[str, Optional[datetime.datetime], Task]]) -> InlineKeyboardMarkup:
     keyboard = []
     now = datetime.datetime.now()
-    for project in projects:
-        if project[1] is not None:
-            text = f"\"{project[0]}\" до {project[1]}   "
-            if project[1] < now:
+    for task in tasks:
+        text = f"\"{task[0]}\""
+        if task[1] is not None:
+            text += f" до {task[1]}   "
+            if task[1] < now:
                 text += "❌"
             else:
                 text += "✅"
-            keyboard.append([InlineKeyboardButton(text=text)])
-        else:
-            keyboard.append([InlineKeyboardButton(text=f"\"{project[0]}\"")])
-    return InlineKeyboardMarkup(inline_keyboard=set_info(keyboard))
+        keyboard.append([
+            InlineKeyboardButton(
+                text=text, callback_data=TaskInfo(content=task[0], description=task[2].description).pack()
+            )
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def choose_attrs(data: dict) -> ReplyKeyboardMarkup:

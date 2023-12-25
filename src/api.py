@@ -197,12 +197,12 @@ async def get_all_projects(token: str) -> List[Tuple[str, int]]:
     return res
 
 
-async def get_all_tasks(token: str) -> List[Tuple[str, Optional[datetime.datetime]]]:
+async def get_all_tasks(token: str) -> List[Tuple[str, Optional[datetime.datetime], Task]]:
     res_all = await get_all(token)
     res = []
     for _, tasks in res_all:
         for task in tasks:
-            res.append((task.content, get_datetime(task.due)))
+            res.append((task.content, get_datetime(task.due), task))
     return res
 
 

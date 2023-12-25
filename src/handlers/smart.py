@@ -4,7 +4,7 @@ import asyncio
 
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
 from nltk import RegexpTokenizer
 
@@ -12,6 +12,7 @@ from src import api, kb, states
 
 from src.finder import Finder, clear_text
 from src.handlers.base import funcs, choose_query
+from src.handlers.other import incorrect
 
 router = Router()
 
@@ -121,13 +122,3 @@ async def drop_attrs(msg: Message, state: FSMContext):
     await state.set_data(data)
     await state.set_state(states.CustomQuery.state)
     await msg.answer("Выберите что *неверно*", parse_mode='Markdown', reply_markup=kb.choose_attrs(data))
-
-
-@router.callback_query(F.data == "info")
-async def info_handler(query: CallbackQuery):
-    await query.answer("Информация")
-
-
-@router.message()
-async def incorrect(msg: Message):
-    await msg.reply("Некорректная команда")
