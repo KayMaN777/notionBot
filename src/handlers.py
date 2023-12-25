@@ -332,22 +332,35 @@ async def delete_missed_tasks(msg: Message, state: FSMContext):
 
 @router.message(states.Menu.choose_query)
 async def get_custom_query(msg: Message, state: FSMContext):
+    data = await state.get_data()
+
+    res_all = await api.get_all(data["token"])
+    names = []
+    contents = []
+    for project, tasks in res_all:
+        names.append(project.name)
+        contents.extend([task.content for task in tasks])
+
     query = msg.text.strip()
-    res = await asyncio.gather(asyncio.to_thread(finder.get_attrs, query))
+    res = await asyncio.gather(asyncio.to_thread(finder.get_attrs, query, [names, contents]))
     attrs: Attrs = res[0]
     print(query, api.types[attrs.type_idx], attrs)  # TODO
 
-    data = await state.get_data()
-
     data["type_idx"] = attrs.type_idx
-    if attrs.name is not None:
-        if "задач" in api.types[attrs.type_idx].lower():
-            data["name"] = "Inbox"
-            data["content"] = attrs.name
-        else:
-            data["name"] = attrs.name
-    if attrs.due_string is not None:
-        data["due_string"] = attrs.due_string
+    # if attrs.due_string is not None:
+    #     data["due_string"] = attrs.due_string
+
+    if attrs.nearest[0] is not None and attrs.nearest[0][1] >= 50:
+        data["name"] = names[attrs.nearest[0][0]]
+    if attrs.nearest[1] is not None and attrs.nearest[1][1] >= 50:
+        data["content"] = contents[attrs.nearest[1][0]]
+
+    # if attrs.name is not None:
+    #     if "задач" in api.types[attrs.type_idx].lower():
+    #         data["name"] = "Inbox"
+    #         data["content"] = attrs.name
+    #     else:
+    #         data["name"] = attrs.name
 
     await state.set_data(data)
     await state.set_state(states.CustomQuery.state)

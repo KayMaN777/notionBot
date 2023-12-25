@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
+
+from thefuzz.fuzz import partial_token_set_ratio
 
 from transformers import AutoTokenizer, AutoModel
 import torch
@@ -20,6 +22,22 @@ date_pattern = r"\d{2}\.\d{2}\.\d{4}|\d{2}\.\d{2}\.\d{2}|сегодня|завт
 date_tokenizer = RegexpTokenizer(date_pattern)
 time_pattern = r"\d{1,2}:\d{2}"
 time_tokenizer = RegexpTokenizer(time_pattern)
+
+
+def find_closest(query: str, candidates: List[str]) -> Optional[Tuple[int, int]]:
+    """
+    Поиск на основе соотношения множеств токенов (в нижнем регистре)
+
+    :param query: Запрос
+    :param candidates: Список кандидатов
+    :return: Индекс ближайшего и соотношение
+    """
+
+    if len(candidates) == 0:
+        return None
+    ratios = [partial_token_set_ratio(query.lower(), candidate.lower()) for candidate in candidates]
+    idx = np.argmax(ratios)
+    return idx, ratios[idx]
 
 
 def clear_text(text: str) -> str:
@@ -58,6 +76,7 @@ class Attrs:
     """
 
     type_idx: int
+    nearest: List[Optional[Tuple[int, int]]]
     name: Optional[str]
     due_string: Optional[str]
 
@@ -74,11 +93,15 @@ class Finder:
 
         self._type_embeds = get_embeds([clear_text(t) for t in types])
 
-    def get_attrs(self, query: str) -> Attrs:
+    def get_attrs(self, query: str, candidates: List[List[str]]) -> Attrs:
         """
         :param query: Запрос
         :return: Атрибуты и ближайший тип
         """
+
+        nearest = []
+        for values in candidates:
+            nearest.append(find_closest(query, values))
 
         query = clear_text(query)
 
@@ -96,4 +119,4 @@ class Finder:
         if due_string == ' ':
             due_string = None
 
-        return Attrs(type_idx, name, due_string)
+        return Attrs(type_idx, nearest, name, due_string)

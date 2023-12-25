@@ -2,5 +2,6 @@ aiogram
 todoist-api-python
 nltk
 numpy
+thefuzz
 torch
 transformers
